@@ -1,60 +1,60 @@
-const O = (n, t = {}, r = {}) => {
-  let s, c, g;
-  const p = t?.options?.minMove || 5, P = t?.options?.minDist || 60, I = t?.options?.maxDuration || 280, X = t?.options?.minVelocity || 0.5, m = (e) => {
-    n?.setPointerCapture && n.setPointerCapture(e.pointerId), !(t?.beforeEvent && !t.beforeEvent("down", e)) && (s = e.clientX, c = e.clientY, g = performance.now(), t.down && t.down({ sx: s, sy: c, st: g, e }), t?.afterEvent && t.afterEvent("down", e));
-  }, a = (e) => {
+const U = (n, t = {}, E = {}) => {
+  let i, s, w;
+  const u = t?.options?.minMove || 5, M = t?.options?.minDist || 60, I = t?.options?.maxDuration || 280, C = t?.options?.minVelocity || 0.5, X = (e) => {
+    n?.setPointerCapture && n.setPointerCapture(e.pointerId), !(t?.beforeEvent && !t.beforeEvent("down", e)) && (i = e.clientX, s = e.clientY, w = performance.now(), t.down && t.down({ sx: i, sy: s, st: w, e }), t?.afterEvent && t.afterEvent("down", e));
+  }, Y = (e) => {
     if (t?.beforeEvent && !t.beforeEvent("move", e)) return;
-    const v = e.clientX - s, f = e.clientY - c, d = Math.abs(v), i = Math.abs(f);
+    const c = e.clientX - i, f = e.clientY - s, m = Math.abs(c), r = Math.abs(f);
     let o;
-    (d >= p || i >= p) && (d > i ? o = v > 0 ? "right" : "left" : o = f > 0 ? "down" : "up"), t.move && t.move({
+    (m >= u || r >= u) && (m > r ? o = c > 0 ? "right" : "left" : o = f > 0 ? "down" : "up"), t.move && t.move({
       d: o,
       ex: e.clientX,
       ey: e.clientY,
       e,
-      sx: s,
-      sy: c,
-      dx: v,
+      sx: i,
+      sy: s,
+      dx: c,
       dy: f
     }), t?.afterEvent && t.afterEvent("move", e);
-  }, L = (e) => {
+  }, b = (e) => {
     if (e.target.releasePointerCapture(e.pointerId), t?.beforeEvent && !t.beforeEvent("up", e)) return;
-    const v = e.clientX, f = e.clientY, d = performance.now(), i = v - s, o = f - c, y = d - g, E = Math.abs(i), u = Math.abs(o);
-    if (t.fast && y <= I && (E >= P || u >= P)) {
-      const l = E / y, D = u / y;
-      if (l >= X || D >= X) {
-        let C;
-        E > u ? C = i > 0 ? "right" : "left" : C = o > 0 ? "down" : "up", t.fast({
+    const c = e.clientX, f = e.clientY, m = performance.now(), r = c - i, o = f - s, a = m - w, v = Math.abs(r), p = Math.abs(o);
+    if (t.fast && a <= I && (v >= M || p >= M)) {
+      const D = v / a, P = p / a;
+      if (D >= C || P >= C) {
+        let L;
+        v > p ? L = r > 0 ? "right" : "left" : L = o > 0 ? "down" : "up", t.fast({
           e,
-          d: C,
-          dx: i,
+          d: L,
+          dx: r,
           dy: o,
-          dt: y,
-          vx: l,
-          vy: D
+          dt: a,
+          vx: D,
+          vy: P
         }), t?.afterEvent && t.afterEvent("up", e);
         return;
       }
     }
-    let M;
-    (E >= p || u >= p) && (E > u ? M = i > 0 ? "right" : "left" : M = o > 0 ? "down" : "up"), t.up && t.up({
-      d: M,
+    let y;
+    (v >= u || p >= u) && (v > p ? y = r > 0 ? "right" : "left" : y = o > 0 ? "down" : "up"), t.up && t.up({
+      d: y,
       e,
-      ex: v,
+      ex: c,
       ey: f,
-      sx: s,
-      sy: c,
-      dx: i,
+      sx: i,
+      sy: s,
+      dx: r,
       dy: o
     }), t?.afterEvent && t.afterEvent("up", e);
-  }, w = (e) => {
+  }, g = (e) => {
     n?.releasePointerCapture && n.releasePointerCapture(e.pointerId), !(t?.beforeEvent && !t.beforeEvent("cancel", e)) && (t.cancel && t.cancel(), t?.afterEvent && t.afterEvent("cancel", e));
-  }, Y = /iP(ad|hone|od)/.test(navigator.userAgent);
-  return Y ? (n.addEventListener("touchstart", m, r), n.addEventListener("touchmove", a, r), n.addEventListener("touchend", L, r), n.addEventListener("touchcancel", w, r)) : (n.addEventListener("pointerdown", m, r), n.addEventListener("pointermove", a, r), n.addEventListener("pointerup", L, r), n.addEventListener("pointercancel", w, r)), { destroy: () => {
-    Y ? (n.removeEventListener("touchstart", m), n.removeEventListener("touchmove", a), n.removeEventListener("touchend", L), n.removeEventListener("touchcancel", w)) : (n.removeEventListener("pointerdown", m), n.removeEventListener("pointermove", a), n.removeEventListener("pointerup", L), n.removeEventListener("pointercancel", w));
+  };
+  return n.addEventListener("pointerdown", X, E), n.addEventListener("pointermove", Y, E), n.addEventListener("pointerup", b, E), n.addEventListener("pointercancel", g, E), { destroy: () => {
+    n.removeEventListener("pointerdown", X), n.removeEventListener("pointermove", Y), n.removeEventListener("pointerup", b), n.removeEventListener("pointercancel", g);
   }, cancel: () => {
     t.cancel && t.cancel();
   } };
 };
 export {
-  O as gesture
+  U as gesture
 };

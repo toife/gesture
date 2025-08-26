@@ -127,35 +127,17 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
   };
 
   // ==== BIND EVENTS ==== //
-  const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
-
-  if (isIOS) {
-    box.addEventListener("touchstart", onDown, params);
-    box.addEventListener("touchmove", onMove, params);
-    box.addEventListener("touchend", onUp, params);
-    box.addEventListener("touchcancel", onCancel, params);
-  } else {
-    // default: pointer
-    box.addEventListener("pointerdown", onDown, params);
-    box.addEventListener("pointermove", onMove, params);
-    box.addEventListener("pointerup", onUp, params);
-    box.addEventListener("pointercancel", onCancel, params);
-  }
+  box.addEventListener("pointerdown", onDown, params);
+  box.addEventListener("pointermove", onMove, params);
+  box.addEventListener("pointerup", onUp, params);
+  box.addEventListener("pointercancel", onCancel, params);
 
   // ==== API để cleanup ==== //
   const destroy = () => {
-    if (isIOS) {
-      // fallback: touch
-      box.removeEventListener("touchstart", onDown);
-      box.removeEventListener("touchmove", onMove);
-      box.removeEventListener("touchend", onUp);
-      box.removeEventListener("touchcancel", onCancel);
-    } else {
-      box.removeEventListener("pointerdown", onDown);
-      box.removeEventListener("pointermove", onMove);
-      box.removeEventListener("pointerup", onUp);
-      box.removeEventListener("pointercancel", onCancel);
-    }
+    box.removeEventListener("pointerdown", onDown);
+    box.removeEventListener("pointermove", onMove);
+    box.removeEventListener("pointerup", onUp);
+    box.removeEventListener("pointercancel", onCancel);
   };
 
   const cancel = () => {

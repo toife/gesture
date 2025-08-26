@@ -1,6 +1,6 @@
 {
   "name": "@toife/gesture",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "Gesture for DOM using JS",
   "type": "module",
   "main": "dist/index.umd.js",
