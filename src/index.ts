@@ -1,4 +1,4 @@
-export const gesture = (box: EventTarget, handle: any = {}, params:any = {}) => {
+export const gesture = (box: any, handle: any = {}, params:any = {}) => {
   let sx: number, sy: number, st: number;
   // let isDragging = false;
 
@@ -9,7 +9,7 @@ export const gesture = (box: EventTarget, handle: any = {}, params:any = {}) => 
 
   // ==== HANDLERS ==== //
   const onDown:any = (e: PointerEvent) => {
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    box.setPointerCapture(e.pointerId);
     if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
     sx = e.clientX;
     sy = e.clientY;
