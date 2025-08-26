@@ -9,7 +9,7 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
 
   // ==== HANDLERS ==== //
   const onDown:any = (e: PointerEvent) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    if (box?.setPointerCapture) box.setPointerCapture?.(e.pointerId);
     if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
     sx = e.clientX;
     sy = e.clientY;
