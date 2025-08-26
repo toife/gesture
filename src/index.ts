@@ -10,16 +10,16 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
   // ==== HANDLERS ==== //
   const onDown:any = (e: PointerEvent) => {
     if (box?.setPointerCapture) box.setPointerCapture(e.pointerId);
-    if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
+    if (handle?.beforeEvent && !handle.beforeEvent('down', e)) return;
     sx = e.clientX;
     sy = e.clientY;
     st = performance.now();
     if (handle.down) handle.down({ sx, sy, st, e });
-    handle?.afterEvent && handle.afterEvent(e);
+    handle?.afterEvent && handle.afterEvent('down', e);
   };
 
   const onMove:any = (e: PointerEvent) => {
-    if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
+    if (handle?.beforeEvent && !handle.beforeEvent('move', e)) return;
     
     const dx = e.clientX - sx;
     const dy = e.clientY - sy;
@@ -49,12 +49,12 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
       });
     }
 
-    handle?.afterEvent && handle.afterEvent(e);
+    handle?.afterEvent && handle.afterEvent('move', e);
   };
 
   const onUp:any = (e: PointerEvent) => {
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
+    if (handle?.beforeEvent && !handle.beforeEvent('up', e)) return;
 
     const ex = e.clientX;
     const ey = e.clientY;
@@ -88,7 +88,7 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
           vx,
           vy,
         });
-        handle?.afterEvent && handle.afterEvent(e);
+        handle?.afterEvent && handle.afterEvent('up', e);
         return;
       }
     }
@@ -116,28 +116,46 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
       });
     }
 
-    handle?.afterEvent && handle.afterEvent(e);
+    handle?.afterEvent && handle.afterEvent('up', e);
   };
 
   const onCancel:any = (e: PointerEvent) => {
     if (box?.releasePointerCapture) box.releasePointerCapture(e.pointerId);
-    if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
+    if (handle?.beforeEvent && !handle.beforeEvent('cancel', e)) return;
     if (handle.cancel) handle.cancel();
-    handle?.afterEvent && handle.afterEvent(e);
+    handle?.afterEvent && handle.afterEvent('cancel', e);
   };
 
   // ==== BIND EVENTS ==== //
-  box.addEventListener("pointerdown", onDown, params);
-  box.addEventListener("pointermove", onMove, params);
-  box.addEventListener("pointerup", onUp, params);
-  box.addEventListener("pointercancel", onCancel, params);
+  const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+
+  if (isIOS) {
+    box.addEventListener("touchstart", onDown, params);
+    box.addEventListener("touchmove", onMove, params);
+    box.addEventListener("touchend", onUp, params);
+    box.addEventListener("touchcancel", onCancel, params);
+  } else {
+    // default: pointer
+    box.addEventListener("pointerdown", onDown, params);
+    box.addEventListener("pointermove", onMove, params);
+    box.addEventListener("pointerup", onUp, params);
+    box.addEventListener("pointercancel", onCancel, params);
+  }
 
   // ==== API để cleanup ==== //
   const destroy = () => {
-    box.removeEventListener("pointerdown", onDown);
-    box.removeEventListener("pointermove", onMove);
-    box.removeEventListener("pointerup", onUp);
-    box.removeEventListener("pointercancel", onCancel);
+    if (isIOS) {
+      // fallback: touch
+      box.removeEventListener("touchstart", onDown);
+      box.removeEventListener("touchmove", onMove);
+      box.removeEventListener("touchend", onUp);
+      box.removeEventListener("touchcancel", onCancel);
+    } else {
+      box.removeEventListener("pointerdown", onDown);
+      box.removeEventListener("pointermove", onMove);
+      box.removeEventListener("pointerup", onUp);
+      box.removeEventListener("pointercancel", onCancel);
+    }
   };
 
   const cancel = () => {
