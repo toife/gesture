@@ -1,4 +1,4 @@
-export const gesture = (box: EventTarget, handle: any = {}) => {
+export const gesture = (box: EventTarget, handle: any = {}, params:any = {}) => {
   let sx: number, sy: number, st: number;
   // let isDragging = false;
 
@@ -127,10 +127,10 @@ export const gesture = (box: EventTarget, handle: any = {}) => {
   };
 
   // ==== BIND EVENTS ==== //
-  box.addEventListener("pointerdown", onDown);
-  box.addEventListener("pointermove", onMove);
-  box.addEventListener("pointerup", onUp);
-  box.addEventListener("pointercancel", onCancel);
+  box.addEventListener("pointerdown", onDown, params);
+  box.addEventListener("pointermove", onMove, params);
+  box.addEventListener("pointerup", onUp, params);
+  box.addEventListener("pointercancel", onCancel, params);
 
   // ==== API để cleanup ==== //
   const destroy = () => {
