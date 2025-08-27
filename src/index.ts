@@ -140,10 +140,10 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
 
   // ==== API để cleanup ==== //
   const destroy = () => {
-    box.removeEventListener(name.down, onDown);
-    box.removeEventListener(name.move, onMove);
-    box.removeEventListener(name.up, onUp);
-    box.removeEventListener(name.cancel, onCancel);
+    box.removeEventListener(name.down, onDown, params);
+    box.removeEventListener(name.move, onMove, params);
+    box.removeEventListener(name.up, onUp, params);
+    box.removeEventListener(name.cancel, onCancel, params);
   };
 
   const cancel = () => {
