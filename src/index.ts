@@ -59,7 +59,7 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
   };
 
   const onUp:any = (e: PointerEvent) => {
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    if (box?.releasePointerCapture) box.releasePointerCapture(e.pointerId);
     if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
 
     const ex = e.clientX;
