@@ -1,65 +1,41 @@
-const k = (n, t = {}, i = {}) => {
-  let c, f, L;
-  const m = t?.options?.minMove || 5, a = t?.options?.minDist || 60, V = t?.options?.maxDuration || 280, P = t?.options?.minVelocity || 0.5, r = {
-    down: t?.options?.down || "pointerdown",
-    move: t?.options?.move || "pointermove",
-    up: t?.options?.up || "pointerup",
-    cancel: t?.options?.cancel || "pointercancel"
-  }, X = (e) => {
-    n?.setPointerCapture && n.setPointerCapture(e.pointerId), !(t?.beforeEvent && !t.beforeEvent(e)) && (c = e.clientX, f = e.clientY, L = performance.now(), t.down && t.down({ sx: c, sy: f, st: L, e }), t?.afterEvent && t.afterEvent(e));
-  }, Y = (e) => {
-    if (t?.beforeEvent && !t.beforeEvent(e)) return;
-    const v = e.clientX - c, p = e.clientY - f, w = Math.abs(v), s = Math.abs(p);
-    let o;
-    (w >= m || s >= m) && (w > s ? o = v > 0 ? "right" : "left" : o = p > 0 ? "down" : "up"), t.move && t.move({
-      d: o,
-      ex: e.clientX,
-      ey: e.clientY,
-      e,
-      sx: c,
-      sy: f,
-      dx: v,
-      dy: p
-    }), t?.afterEvent && t.afterEvent(e);
-  }, D = (e) => {
-    if (n?.releasePointerCapture && n.releasePointerCapture(e.pointerId), t?.beforeEvent && !t.beforeEvent(e)) return;
-    const v = e.clientX, p = e.clientY, w = performance.now(), s = v - c, o = p - f, y = w - L, E = Math.abs(s), u = Math.abs(o);
-    if (t.fast && y <= V && (E >= a || u >= a)) {
-      const b = E / y, I = u / y;
-      if (b >= P || I >= P) {
-        let M;
-        E > u ? M = s > 0 ? "right" : "left" : M = o > 0 ? "down" : "up", t.fast({
-          e,
-          d: M,
-          dx: s,
-          dy: o,
-          dt: y,
-          vx: b,
-          vy: I
-        }), t?.afterEvent && t.afterEvent(e);
+const G = (s, t = {}, c = {}) => {
+  let v, f, Y, m = !1;
+  const M = t?.options?.minMove || 5, g = t?.options?.minDist || 60, B = t?.options?.maxDuration || 280, p = t?.options?.minVelocity || 0.5, T = (e, n, o) => {
+    t?.beforeEvent && !t.beforeEvent(o) || (v = e, f = n, Y = performance.now(), m = !0, t.down && t.down({ sx: v, sy: f, st: Y, e: o }), t?.afterEvent && t.afterEvent(o));
+  }, b = (e, n, o) => {
+    if (!m || t?.beforeEvent && !t.beforeEvent(o)) return;
+    const u = e - v, E = n - f, y = Math.abs(u), r = Math.abs(E);
+    let i;
+    (y >= M || r >= M) && (y > r ? i = u > 0 ? "right" : "left" : i = E > 0 ? "down" : "up"), t.move && t.move({ d: i, ex: e, ey: n, e: o, sx: v, sy: f, dx: u, dy: E }), t?.afterEvent && t.afterEvent(o);
+  }, l = (e, n, o) => {
+    if (!m || (m = !1, t?.beforeEvent && !t.beforeEvent(o))) return;
+    const u = e, E = n, y = performance.now(), r = u - v, i = E - f, X = y - Y, L = Math.abs(r), w = Math.abs(i);
+    if (t.fast && X <= B && (L >= g || w >= g)) {
+      const z = L / X, A = w / X;
+      if (z >= p || A >= p) {
+        let D;
+        L > w ? D = r > 0 ? "right" : "left" : D = i > 0 ? "down" : "up", t.fast({ e: o, d: D, dx: r, dy: i, dt: X, vx: z, vy: A }), t?.afterEvent && t.afterEvent(o);
         return;
       }
     }
-    let C;
-    (E >= m || u >= m) && (E > u ? C = s > 0 ? "right" : "left" : C = o > 0 ? "down" : "up"), t.up && t.up({
-      d: C,
-      e,
-      ex: v,
-      ey: p,
-      sx: c,
-      sy: f,
-      dx: s,
-      dy: o
-    }), t?.afterEvent && t.afterEvent(e);
-  }, g = (e) => {
-    n?.releasePointerCapture && n.releasePointerCapture(e.pointerId), !(t?.beforeEvent && !t.beforeEvent(e)) && (t.cancel && t.cancel(), t?.afterEvent && t.afterEvent(e));
-  };
-  return n.addEventListener(r.down, X, i), n.addEventListener(r.move, Y, i), n.addEventListener(r.up, D, i), n.addEventListener(r.cancel, g, i), { destroy: () => {
-    n.removeEventListener(r.down, X, i), n.removeEventListener(r.move, Y, i), n.removeEventListener(r.up, D, i), n.removeEventListener(r.cancel, g, i);
-  }, cancel: () => {
-    t.cancel && t.cancel();
-  } };
+    let d;
+    (L >= M || w >= M) && (L > w ? d = r > 0 ? "right" : "left" : d = i > 0 ? "down" : "up"), t.up && t.up({ d, e: o, ex: u, ey: E, sx: v, sy: f, dx: r, dy: i }), t?.afterEvent && t.afterEvent(o);
+  }, C = (e) => {
+    m = !1, t.cancel && t.cancel(e), t?.afterEvent && t.afterEvent(e);
+  }, V = (e) => {
+    const n = e.touches[0];
+    T(n.clientX, n.clientY, e);
+  }, S = (e) => {
+    const n = e.touches[0];
+    b(n.clientX, n.clientY, e);
+  }, U = (e) => {
+    const n = e.changedTouches[0];
+    l(n.clientX, n.clientY, e);
+  }, j = (e) => T(e.clientX, e.clientY, e), k = (e) => b(e.clientX, e.clientY, e), q = (e) => l(e.clientX, e.clientY, e);
+  return s.addEventListener("touchstart", V, c), s.addEventListener("touchmove", S, c), s.addEventListener("touchend", U, c), s.addEventListener("mousedown", j, c), s.addEventListener("mousemove", k, c), s.addEventListener("mouseup", q, c), { destroy: () => {
+    s.removeEventListener("touchstart", V, c), s.removeEventListener("touchmove", S, c), s.removeEventListener("touchend", U, c), s.removeEventListener("mousedown", j, c), s.removeEventListener("mousemove", k, c), s.removeEventListener("mouseup", q, c);
+  }, cancel: C };
 };
 export {
-  k as gesture
+  G as gesture
 };

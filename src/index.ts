@@ -1,69 +1,51 @@
-export const gesture = (box: any, handle: any = {}, params:any = {}) => {
+export const gesture = (box: HTMLElement, handle: any = {}, params: any = {}) => {
   let sx: number, sy: number, st: number;
-  // let isDragging = false;
+  let isDown = false;
 
   const minMove = handle?.options?.minMove || 5; // px
   const minDist = handle?.options?.minDist || 60; // px
   const maxDuration = handle?.options?.maxDuration || 280; // ms
   const minVelocity = handle?.options?.minVelocity || 0.5; // px/ms
-  const name = {
-    down: handle?.options?.down || 'pointerdown',
-    move: handle?.options?.move || 'pointermove',
-    up: handle?.options?.up || 'pointerup',
-    cancel: handle?.options?.cancel || 'pointercancel',
-  }
 
   // ==== HANDLERS ==== //
-  const onDown:any = (e: PointerEvent) => {
-    if (box?.setPointerCapture) box.setPointerCapture(e.pointerId);
+  const start = (x: number, y: number, e: Event) => {
     if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
-    sx = e.clientX;
-    sy = e.clientY;
+    sx = x;
+    sy = y;
     st = performance.now();
+    isDown = true;
     if (handle.down) handle.down({ sx, sy, st, e });
     handle?.afterEvent && handle.afterEvent(e);
   };
 
-  const onMove:any = (e: PointerEvent) => {
+  const move = (x: number, y: number, e: Event) => {
+    if (!isDown) return;
     if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
-    
-    const dx = e.clientX - sx;
-    const dy = e.clientY - sy;
+
+    const dx = x - sx;
+    const dy = y - sy;
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
 
-    // normal up
     let d: "left" | "right" | "up" | "down" | undefined;
     if (absX >= minMove || absY >= minMove) {
-      if (absX > absY) {
-        d = dx > 0 ? "right" : "left";
-      } else {
-        d = dy > 0 ? "down" : "up";
-      }
+      if (absX > absY) d = dx > 0 ? "right" : "left";
+      else d = dy > 0 ? "down" : "up";
     }
 
     if (handle.move) {
-      handle.move({
-        d,
-        ex: e.clientX,
-        ey: e.clientY,
-        e,
-        sx,
-        sy,
-        dx,
-        dy,
-      });
+      handle.move({ d, ex: x, ey: y, e, sx, sy, dx, dy });
     }
-
     handle?.afterEvent && handle.afterEvent(e);
   };
 
-  const onUp:any = (e: PointerEvent) => {
-    if (box?.releasePointerCapture) box.releasePointerCapture(e.pointerId);
+  const end = (x: number, y: number, e: Event) => {
+    if (!isDown) return;
+    isDown = false;
     if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
 
-    const ex = e.clientX;
-    const ey = e.clientY;
+    const ex = x;
+    const ey = y;
     const et = performance.now();
 
     const dx = ex - sx;
@@ -80,20 +62,10 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
 
       if (vx >= minVelocity || vy >= minVelocity) {
         let d: "left" | "right" | "up" | "down";
-        if (absX > absY) {
-          d = dx > 0 ? "right" : "left";
-        } else {
-          d = dy > 0 ? "down" : "up";
-        }
-        handle.fast({
-          e,
-          d,
-          dx,
-          dy,
-          dt,
-          vx,
-          vy,
-        });
+        if (absX > absY) d = dx > 0 ? "right" : "left";
+        else d = dy > 0 ? "down" : "up";
+
+        handle.fast({ e, d, dx, dy, dt, vx, vy });
         handle?.afterEvent && handle.afterEvent(e);
         return;
       }
@@ -102,54 +74,60 @@ export const gesture = (box: any, handle: any = {}, params:any = {}) => {
     // normal up
     let d: "left" | "right" | "up" | "down" | undefined;
     if (absX >= minMove || absY >= minMove) {
-      if (absX > absY) {
-        d = dx > 0 ? "right" : "left";
-      } else {
-        d = dy > 0 ? "down" : "up";
-      }
+      if (absX > absY) d = dx > 0 ? "right" : "left";
+      else d = dy > 0 ? "down" : "up";
     }
 
     if (handle.up) {
-      handle.up({
-        d,
-        e,
-        ex,
-        ey,
-        sx,
-        sy,
-        dx,
-        dy,
-      });
+      handle.up({ d, e, ex, ey, sx, sy, dx, dy });
     }
-
     handle?.afterEvent && handle.afterEvent(e);
   };
 
-  const onCancel:any = (e: PointerEvent) => {
-    if (box?.releasePointerCapture) box.releasePointerCapture(e.pointerId);
-    if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
-    if (handle.cancel) handle.cancel();
+  const cancel = (e?: Event) => {
+    isDown = false;
+    if (handle.cancel) handle.cancel(e);
     handle?.afterEvent && handle.afterEvent(e);
   };
 
   // ==== BIND EVENTS ==== //
-  box.addEventListener(name.down, onDown, params);
-  box.addEventListener(name.move, onMove, params);
-  box.addEventListener(name.up, onUp, params);
-  box.addEventListener(name.cancel, onCancel, params);
+  // Touch (mobile)
+  const onTouchStart = (e: TouchEvent) => {
+    const t = e.touches[0];
+    start(t.clientX, t.clientY, e);
+  };
+  const onTouchMove = (e: TouchEvent) => {
+    const t = e.touches[0];
+    move(t.clientX, t.clientY, e);
+  };
+  const onTouchEnd = (e: TouchEvent) => {
+    const t = e.changedTouches[0];
+    end(t.clientX, t.clientY, e);
+  };
+
+  // Mouse (desktop)
+  const onMouseDown = (e: MouseEvent) => start(e.clientX, e.clientY, e);
+  const onMouseMove = (e: MouseEvent) => move(e.clientX, e.clientY, e);
+  const onMouseUp = (e: MouseEvent) => end(e.clientX, e.clientY, e);
+
+  box.addEventListener("touchstart", onTouchStart, params);
+  box.addEventListener("touchmove", onTouchMove, params);
+  box.addEventListener("touchend", onTouchEnd, params);
+
+  box.addEventListener("mousedown", onMouseDown, params);
+  box.addEventListener("mousemove", onMouseMove, params);
+  box.addEventListener("mouseup", onMouseUp, params);
 
   // ==== API để cleanup ==== //
   const destroy = () => {
-    box.removeEventListener(name.down, onDown, params);
-    box.removeEventListener(name.move, onMove, params);
-    box.removeEventListener(name.up, onUp, params);
-    box.removeEventListener(name.cancel, onCancel, params);
+    box.removeEventListener("touchstart", onTouchStart, params);
+    box.removeEventListener("touchmove", onTouchMove, params);
+    box.removeEventListener("touchend", onTouchEnd, params);
+
+    box.removeEventListener("mousedown", onMouseDown, params);
+    box.removeEventListener("mousemove", onMouseMove, params);
+    box.removeEventListener("mouseup", onMouseUp, params);
   };
 
-  const cancel = () => {
-    // isDragging = false;
-    if (handle.cancel) handle.cancel();
-  }
-
-  return {destroy, cancel};
+  return { destroy, cancel };
 };
