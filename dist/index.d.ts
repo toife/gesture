@@ -1,4 +1,4 @@
-export declare const gesture: (box: HTMLElement, handle?: any, params?: any) => {
+export declare const gesture: (element: HTMLElement, handlers?: any, options?: any) => {
     destroy: () => void;
-    cancel: (e?: Event) => void;
+    cancel: (event?: Event) => void;
 };

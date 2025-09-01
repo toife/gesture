@@ -1,41 +1,61 @@
-const G = (s, t = {}, c = {}) => {
-  let v, f, Y, m = !1;
-  const M = t?.options?.minMove || 5, g = t?.options?.minDist || 60, B = t?.options?.maxDuration || 280, p = t?.options?.minVelocity || 0.5, T = (e, n, o) => {
-    t?.beforeEvent && !t.beforeEvent(o) || (v = e, f = n, Y = performance.now(), m = !0, t.down && t.down({ sx: v, sy: f, st: Y, e: o }), t?.afterEvent && t.afterEvent(o));
-  }, b = (e, n, o) => {
-    if (!m || t?.beforeEvent && !t.beforeEvent(o)) return;
-    const u = e - v, E = n - f, y = Math.abs(u), r = Math.abs(E);
-    let i;
-    (y >= M || r >= M) && (y > r ? i = u > 0 ? "right" : "left" : i = E > 0 ? "down" : "up"), t.move && t.move({ d: i, ex: e, ey: n, e: o, sx: v, sy: f, dx: u, dy: E }), t?.afterEvent && t.afterEvent(o);
-  }, l = (e, n, o) => {
-    if (!m || (m = !1, t?.beforeEvent && !t.beforeEvent(o))) return;
-    const u = e, E = n, y = performance.now(), r = u - v, i = E - f, X = y - Y, L = Math.abs(r), w = Math.abs(i);
-    if (t.fast && X <= B && (L >= g || w >= g)) {
-      const z = L / X, A = w / X;
-      if (z >= p || A >= p) {
-        let D;
-        L > w ? D = r > 0 ? "right" : "left" : D = i > 0 ? "down" : "up", t.fast({ e: o, d: D, dx: r, dy: i, dt: X, vx: z, vy: A }), t?.afterEvent && t.afterEvent(o);
+const C = (n, t = {}, i = {}) => {
+  let u, v, D, m = !1, r;
+  const L = t?.options?.minMove || 5, T = t?.options?.minDist || 60, z = t?.options?.maxDuration || 280, g = t?.options?.minVelocity || 0.5, y = (o, e, c) => {
+    t?.beforeEvent && !t.beforeEvent(c) || (u = o, v = e, D = performance.now(), m = !0, r = void 0, t.down && t.down({ startX: u, startY: v, startTime: D, event: c }), t?.afterEvent && t.afterEvent(c));
+  }, p = (o, e, c) => {
+    if (!m || t?.beforeEvent && !t.beforeEvent(c)) return;
+    const E = o - u, a = e - v, w = Math.abs(E), f = Math.abs(a);
+    let s;
+    (w >= L || f >= L) && (w > f ? s = E > 0 ? "right" : "left" : s = a > 0 ? "down" : "up", r || (r = s)), t.move && t.move({
+      direction: s,
+      initialDirection: r,
+      currentX: o,
+      currentY: e,
+      event: c,
+      startX: u,
+      startY: v,
+      deltaX: E,
+      deltaY: a
+    }), t?.afterEvent && t.afterEvent(c);
+  }, x = (o, e, c) => {
+    if (!m || (m = !1, t?.beforeEvent && !t.beforeEvent(c))) return;
+    const E = o, a = e, w = performance.now(), f = E - u, s = a - v, M = w - D, b = Math.abs(f), X = Math.abs(s);
+    if (t.fast && M <= z && (b >= T || X >= T)) {
+      const l = b / M, q = X / M;
+      if (l >= g || q >= g) {
+        let d;
+        b > X ? d = f > 0 ? "right" : "left" : d = s > 0 ? "down" : "up", r || (r = d), t.fast({ event: c, direction: d, initialDirection: r, deltaX: f, deltaY: s, deltaTime: M, velocityX: l, velocityY: q }), t?.afterEvent && t.afterEvent(c);
         return;
       }
     }
-    let d;
-    (L >= M || w >= M) && (L > w ? d = r > 0 ? "right" : "left" : d = i > 0 ? "down" : "up"), t.up && t.up({ d, e: o, ex: u, ey: E, sx: v, sy: f, dx: r, dy: i }), t?.afterEvent && t.afterEvent(o);
-  }, C = (e) => {
-    m = !1, t.cancel && t.cancel(e), t?.afterEvent && t.afterEvent(e);
-  }, V = (e) => {
-    const n = e.touches[0];
-    T(n.clientX, n.clientY, e);
-  }, S = (e) => {
-    const n = e.touches[0];
-    b(n.clientX, n.clientY, e);
-  }, U = (e) => {
-    const n = e.changedTouches[0];
-    l(n.clientX, n.clientY, e);
-  }, j = (e) => T(e.clientX, e.clientY, e), k = (e) => b(e.clientX, e.clientY, e), q = (e) => l(e.clientX, e.clientY, e);
-  return s.addEventListener("touchstart", V, c), s.addEventListener("touchmove", S, c), s.addEventListener("touchend", U, c), s.addEventListener("mousedown", j, c), s.addEventListener("mousemove", k, c), s.addEventListener("mouseup", q, c), { destroy: () => {
-    s.removeEventListener("touchstart", V, c), s.removeEventListener("touchmove", S, c), s.removeEventListener("touchend", U, c), s.removeEventListener("mousedown", j, c), s.removeEventListener("mousemove", k, c), s.removeEventListener("mouseup", q, c);
-  }, cancel: C };
+    let Y;
+    (b >= L || X >= L) && (b > X ? Y = f > 0 ? "right" : "left" : Y = s > 0 ? "down" : "up"), !r && Y && (r = Y), t.up && t.up({
+      direction: Y,
+      initialDirection: r,
+      event: c,
+      endX: E,
+      endY: a,
+      startX: u,
+      startY: v,
+      deltaX: f,
+      deltaY: s
+    }), t?.afterEvent && t.afterEvent(c);
+  }, A = (o) => {
+    m = !1, t.cancel && t.cancel(o), t?.afterEvent && t.afterEvent(o);
+  }, V = (o) => {
+    const e = o.touches[0];
+    y(e.clientX, e.clientY, o);
+  }, P = (o) => {
+    const e = o.touches[0];
+    p(e.clientX, e.clientY, o);
+  }, S = (o) => {
+    const e = o.changedTouches[0];
+    x(e.clientX, e.clientY, o);
+  }, U = (o) => y(o.clientX, o.clientY, o), j = (o) => p(o.clientX, o.clientY, o), k = (o) => x(o.clientX, o.clientY, o);
+  return n.addEventListener("touchstart", V, i), n.addEventListener("touchmove", P, i), n.addEventListener("touchend", S, i), n.addEventListener("mousedown", U, i), n.addEventListener("mousemove", j, i), n.addEventListener("mouseup", k, i), { destroy: () => {
+    n.removeEventListener("touchstart", V, i), n.removeEventListener("touchmove", P, i), n.removeEventListener("touchend", S, i), n.removeEventListener("mousedown", U, i), n.removeEventListener("mousemove", j, i), n.removeEventListener("mouseup", k, i);
+  }, cancel: A };
 };
 export {
-  G as gesture
+  C as gesture
 };

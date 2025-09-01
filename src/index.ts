@@ -1,132 +1,162 @@
-export const gesture = (box: HTMLElement, handle: any = {}, params: any = {}) => {
-  let sx: number, sy: number, st: number;
-  let isDown = false;
+export const gesture = (element: HTMLElement, handlers: any = {}, options: any = {}) => {
+  let startX: number, startY: number, startTime: number;
+  let isPointerDown = false;
+  let initialDirection: "left" | "right" | "up" | "down" | undefined;
 
-  const minMove = handle?.options?.minMove || 5; // px
-  const minDist = handle?.options?.minDist || 60; // px
-  const maxDuration = handle?.options?.maxDuration || 280; // ms
-  const minVelocity = handle?.options?.minVelocity || 0.5; // px/ms
+  const minMove = handlers?.options?.minMove || 5; // px
+  const minDist = handlers?.options?.minDist || 60; // px
+  const maxDuration = handlers?.options?.maxDuration || 280; // ms
+  const minVelocity = handlers?.options?.minVelocity || 0.5; // px/ms
 
   // ==== HANDLERS ==== //
-  const start = (x: number, y: number, e: Event) => {
-    if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
-    sx = x;
-    sy = y;
-    st = performance.now();
-    isDown = true;
-    if (handle.down) handle.down({ sx, sy, st, e });
-    handle?.afterEvent && handle.afterEvent(e);
+  const start = (x: number, y: number, event: Event) => {
+    if (handlers?.beforeEvent && !handlers.beforeEvent(event)) return;
+    startX = x;
+    startY = y;
+    startTime = performance.now();
+    isPointerDown = true;
+    initialDirection = undefined; // reset hướng ban đầu
+    if (handlers.down) handlers.down({ startX, startY, startTime, event });
+    handlers?.afterEvent && handlers.afterEvent(event);
   };
 
-  const move = (x: number, y: number, e: Event) => {
-    if (!isDown) return;
-    if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
+  const move = (x: number, y: number, event: Event) => {
+    if (!isPointerDown) return;
+    if (handlers?.beforeEvent && !handlers.beforeEvent(event)) return;
 
-    const dx = x - sx;
-    const dy = y - sy;
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
+    const deltaX = x - startX;
+    const deltaY = y - startY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
 
-    let d: "left" | "right" | "up" | "down" | undefined;
+    let direction: "left" | "right" | "up" | "down" | undefined;
     if (absX >= minMove || absY >= minMove) {
-      if (absX > absY) d = dx > 0 ? "right" : "left";
-      else d = dy > 0 ? "down" : "up";
+      if (absX > absY) direction = deltaX > 0 ? "right" : "left";
+      else direction = deltaY > 0 ? "down" : "up";
+
+      // Ghi lại hướng đầu tiên
+      if (!initialDirection) {
+        initialDirection = direction;
+      }
     }
 
-    if (handle.move) {
-      handle.move({ d, ex: x, ey: y, e, sx, sy, dx, dy });
+    if (handlers.move) {
+      handlers.move({
+        direction,
+        initialDirection,
+        currentX: x,
+        currentY: y,
+        event,
+        startX,
+        startY,
+        deltaX,
+        deltaY,
+      });
     }
-    handle?.afterEvent && handle.afterEvent(e);
+    handlers?.afterEvent && handlers.afterEvent(event);
   };
 
-  const end = (x: number, y: number, e: Event) => {
-    if (!isDown) return;
-    isDown = false;
-    if (handle?.beforeEvent && !handle.beforeEvent(e)) return;
+  const end = (x: number, y: number, event: Event) => {
+    if (!isPointerDown) return;
+    isPointerDown = false;
+    if (handlers?.beforeEvent && !handlers.beforeEvent(event)) return;
 
-    const ex = x;
-    const ey = y;
-    const et = performance.now();
+    const endX = x;
+    const endY = y;
+    const endTime = performance.now();
 
-    const dx = ex - sx;
-    const dy = ey - sy;
-    const dt = et - st;
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    const deltaTime = endTime - startTime;
 
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
 
     // fast swipe
-    if (handle.fast && dt <= maxDuration && (absX >= minDist || absY >= minDist)) {
-      const vx = absX / dt;
-      const vy = absY / dt;
+    if (handlers.fast && deltaTime <= maxDuration && (absX >= minDist || absY >= minDist)) {
+      const velocityX = absX / deltaTime;
+      const velocityY = absY / deltaTime;
 
-      if (vx >= minVelocity || vy >= minVelocity) {
-        let d: "left" | "right" | "up" | "down";
-        if (absX > absY) d = dx > 0 ? "right" : "left";
-        else d = dy > 0 ? "down" : "up";
+      if (velocityX >= minVelocity || velocityY >= minVelocity) {
+        let direction: "left" | "right" | "up" | "down";
+        if (absX > absY) direction = deltaX > 0 ? "right" : "left";
+        else direction = deltaY > 0 ? "down" : "up";
 
-        handle.fast({ e, d, dx, dy, dt, vx, vy });
-        handle?.afterEvent && handle.afterEvent(e);
+        if (!initialDirection) initialDirection = direction;
+
+        handlers.fast({ event, direction, initialDirection, deltaX, deltaY, deltaTime, velocityX, velocityY });
+        handlers?.afterEvent && handlers.afterEvent(event);
         return;
       }
     }
 
     // normal up
-    let d: "left" | "right" | "up" | "down" | undefined;
+    let direction: "left" | "right" | "up" | "down" | undefined;
     if (absX >= minMove || absY >= minMove) {
-      if (absX > absY) d = dx > 0 ? "right" : "left";
-      else d = dy > 0 ? "down" : "up";
+      if (absX > absY) direction = deltaX > 0 ? "right" : "left";
+      else direction = deltaY > 0 ? "down" : "up";
     }
 
-    if (handle.up) {
-      handle.up({ d, e, ex, ey, sx, sy, dx, dy });
+    if (!initialDirection && direction) {
+      initialDirection = direction;
     }
-    handle?.afterEvent && handle.afterEvent(e);
+
+    if (handlers.up) {
+      handlers.up({
+        direction,
+        initialDirection,
+        event,
+        endX,
+        endY,
+        startX,
+        startY,
+        deltaX,
+        deltaY,
+      });
+    }
+    handlers?.afterEvent && handlers.afterEvent(event);
   };
 
-  const cancel = (e?: Event) => {
-    isDown = false;
-    if (handle.cancel) handle.cancel(e);
-    handle?.afterEvent && handle.afterEvent(e);
+  const cancel = (event?: Event) => {
+    isPointerDown = false;
+    if (handlers.cancel) handlers.cancel(event);
+    handlers?.afterEvent && handlers.afterEvent(event);
   };
 
   // ==== BIND EVENTS ==== //
-  // Touch (mobile)
-  const onTouchStart = (e: TouchEvent) => {
-    const t = e.touches[0];
-    start(t.clientX, t.clientY, e);
+  const onTouchStart = (event: TouchEvent) => {
+    const t = event.touches[0];
+    start(t.clientX, t.clientY, event);
   };
-  const onTouchMove = (e: TouchEvent) => {
-    const t = e.touches[0];
-    move(t.clientX, t.clientY, e);
+  const onTouchMove = (event: TouchEvent) => {
+    const t = event.touches[0];
+    move(t.clientX, t.clientY, event);
   };
-  const onTouchEnd = (e: TouchEvent) => {
-    const t = e.changedTouches[0];
-    end(t.clientX, t.clientY, e);
+  const onTouchEnd = (event: TouchEvent) => {
+    const t = event.changedTouches[0];
+    end(t.clientX, t.clientY, event);
   };
 
-  // Mouse (desktop)
-  const onMouseDown = (e: MouseEvent) => start(e.clientX, e.clientY, e);
-  const onMouseMove = (e: MouseEvent) => move(e.clientX, e.clientY, e);
-  const onMouseUp = (e: MouseEvent) => end(e.clientX, e.clientY, e);
+  const onMouseDown = (event: MouseEvent) => start(event.clientX, event.clientY, event);
+  const onMouseMove = (event: MouseEvent) => move(event.clientX, event.clientY, event);
+  const onMouseUp = (event: MouseEvent) => end(event.clientX, event.clientY, event);
 
-  box.addEventListener("touchstart", onTouchStart, params);
-  box.addEventListener("touchmove", onTouchMove, params);
-  box.addEventListener("touchend", onTouchEnd, params);
+  element.addEventListener("touchstart", onTouchStart, options);
+  element.addEventListener("touchmove", onTouchMove, options);
+  element.addEventListener("touchend", onTouchEnd, options);
 
-  box.addEventListener("mousedown", onMouseDown, params);
-  box.addEventListener("mousemove", onMouseMove, params);
-  box.addEventListener("mouseup", onMouseUp, params);
+  element.addEventListener("mousedown", onMouseDown, options);
+  element.addEventListener("mousemove", onMouseMove, options);
+  element.addEventListener("mouseup", onMouseUp, options);
 
-  // ==== API để cleanup ==== //
   const destroy = () => {
-    box.removeEventListener("touchstart", onTouchStart, params);
-    box.removeEventListener("touchmove", onTouchMove, params);
-    box.removeEventListener("touchend", onTouchEnd, params);
+    element.removeEventListener("touchstart", onTouchStart, options);
+    element.removeEventListener("touchmove", onTouchMove, options);
+    element.removeEventListener("touchend", onTouchEnd, options);
 
-    box.removeEventListener("mousedown", onMouseDown, params);
-    box.removeEventListener("mousemove", onMouseMove, params);
-    box.removeEventListener("mouseup", onMouseUp, params);
+    element.removeEventListener("mousedown", onMouseDown, options);
+    element.removeEventListener("mousemove", onMouseMove, options);
+    element.removeEventListener("mouseup", onMouseUp, options);
   };
 
   return { destroy, cancel };
