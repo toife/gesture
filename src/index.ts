@@ -1,162 +1,217 @@
+type Direction = "left" | "right" | "up" | "down";
+
+const cardinalFromDelta = (dx: number, dy: number): Direction =>
+  Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
+
+const directionBeyondThreshold = (dx: number, dy: number, minMove: number): Direction | undefined => {
+  if (Math.abs(dx) < minMove && Math.abs(dy) < minMove) return undefined;
+  return cardinalFromDelta(dx, dy);
+};
+
 export const gesture = (element: HTMLElement, handlers: any = {}, options: any = {}) => {
-  let startX: number, startY: number, startTime: number;
+  let startX = 0;
+  let startY = 0;
+  let startTime = 0;
+  let lastX = 0;
+  let lastY = 0;
   let isPointerDown = false;
-  let initialDirection: "left" | "right" | "up" | "down" | undefined;
+  let initialDirection: Direction | undefined;
 
-  const minMove = handlers?.options?.minMove || 5; // px
-  const minDist = handlers?.options?.minDist || 60; // px
-  const maxDuration = handlers?.options?.maxDuration || 280; // ms
-  const minVelocity = handlers?.options?.minVelocity || 0.5; // px/ms
+  const minMove = handlers?.options?.minMove ?? 5;
+  const minDist = handlers?.options?.minDist ?? 60;
+  const maxDuration = handlers?.options?.maxDuration ?? 280;
+  const minVelocity = handlers?.options?.minVelocity ?? 0.5;
 
-  // ==== HANDLERS ==== //
+  const touchMoveOpts: AddEventListenerOptions = { capture: true, passive: true };
+  const capture = true;
+
+  const beforeOk = (event: Event) => !handlers.beforeEvent || handlers.beforeEvent(event);
+  const after = (event?: Event) => handlers.afterEvent?.(event);
+
+  const hitTarget = (clientX: number, clientY: number) => {
+    const top = document.elementFromPoint(clientX, clientY);
+    return !!top && (element === top || element.contains(top));
+  };
+
+  const stopTracking = () => {
+    isPointerDown = false;
+    toggleGlobalListeners(false);
+  };
+
   const start = (x: number, y: number, event: Event) => {
-    if (handlers?.beforeEvent && !handlers.beforeEvent(event)) return;
+    if (!beforeOk(event)) return;
     startX = x;
     startY = y;
+    lastX = x;
+    lastY = y;
     startTime = performance.now();
     isPointerDown = true;
-    initialDirection = undefined; // reset hướng ban đầu
-    if (handlers.down) handlers.down({ startX, startY, startTime, event });
-    handlers?.afterEvent && handlers.afterEvent(event);
+    initialDirection = undefined;
+    toggleGlobalListeners(true);
+    handlers.down?.({ startX, startY, startTime, event });
+    after(event);
   };
 
   const move = (x: number, y: number, event: Event) => {
     if (!isPointerDown) return;
-    if (handlers?.beforeEvent && !handlers.beforeEvent(event)) return;
+    lastX = x;
+    lastY = y;
+    if (!beforeOk(event)) return;
 
     const deltaX = x - startX;
     const deltaY = y - startY;
-    const absX = Math.abs(deltaX);
-    const absY = Math.abs(deltaY);
+    const direction = directionBeyondThreshold(deltaX, deltaY, minMove);
+    if (direction && !initialDirection) initialDirection = direction;
 
-    let direction: "left" | "right" | "up" | "down" | undefined;
-    if (absX >= minMove || absY >= minMove) {
-      if (absX > absY) direction = deltaX > 0 ? "right" : "left";
-      else direction = deltaY > 0 ? "down" : "up";
-
-      // Ghi lại hướng đầu tiên
-      if (!initialDirection) {
-        initialDirection = direction;
-      }
-    }
-
-    if (handlers.move) {
-      handlers.move({
-        direction,
-        initialDirection,
-        currentX: x,
-        currentY: y,
-        event,
-        startX,
-        startY,
-        deltaX,
-        deltaY,
-      });
-    }
-    handlers?.afterEvent && handlers.afterEvent(event);
+    handlers.move?.({
+      direction,
+      initialDirection,
+      currentX: x,
+      currentY: y,
+      event,
+      startX,
+      startY,
+      deltaX,
+      deltaY,
+    });
+    after(event);
   };
 
   const end = (x: number, y: number, event: Event) => {
     if (!isPointerDown) return;
-    isPointerDown = false;
-    if (handlers?.beforeEvent && !handlers.beforeEvent(event)) return;
+    stopTracking();
+    if (!beforeOk(event)) return;
 
     const endX = x;
     const endY = y;
     const endTime = performance.now();
-
     const deltaX = endX - startX;
     const deltaY = endY - startY;
     const deltaTime = endTime - startTime;
-
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
 
-    // fast swipe
     if (handlers.fast && deltaTime <= maxDuration && (absX >= minDist || absY >= minDist)) {
       const velocityX = absX / deltaTime;
       const velocityY = absY / deltaTime;
-
       if (velocityX >= minVelocity || velocityY >= minVelocity) {
-        let direction: "left" | "right" | "up" | "down";
-        if (absX > absY) direction = deltaX > 0 ? "right" : "left";
-        else direction = deltaY > 0 ? "down" : "up";
-
+        const direction = cardinalFromDelta(deltaX, deltaY);
         if (!initialDirection) initialDirection = direction;
-
-        handlers.fast({ event, direction, initialDirection, deltaX, deltaY, deltaTime, velocityX, velocityY });
-        handlers?.afterEvent && handlers.afterEvent(event);
+        handlers.fast({
+          event,
+          direction,
+          initialDirection,
+          deltaX,
+          deltaY,
+          deltaTime,
+          velocityX,
+          velocityY,
+        });
+        after(event);
         return;
       }
     }
 
-    // normal up
-    let direction: "left" | "right" | "up" | "down" | undefined;
-    if (absX >= minMove || absY >= minMove) {
-      if (absX > absY) direction = deltaX > 0 ? "right" : "left";
-      else direction = deltaY > 0 ? "down" : "up";
-    }
+    let direction = directionBeyondThreshold(deltaX, deltaY, minMove);
+    if (!initialDirection && direction) initialDirection = direction;
 
-    if (!initialDirection && direction) {
-      initialDirection = direction;
-    }
-
-    if (handlers.up) {
-      handlers.up({
-        direction,
-        initialDirection,
-        event,
-        endX,
-        endY,
-        startX,
-        startY,
-        deltaX,
-        deltaY,
-      });
-    }
-    handlers?.afterEvent && handlers.afterEvent(event);
+    handlers.up?.({
+      direction,
+      initialDirection,
+      event,
+      endX,
+      endY,
+      startX,
+      startY,
+      deltaX,
+      deltaY,
+    });
+    after(event);
   };
 
   const cancel = (event?: Event) => {
-    isPointerDown = false;
-    if (handlers.cancel) handlers.cancel(event);
-    handlers?.afterEvent && handlers.afterEvent(event);
+    stopTracking();
+    handlers.cancel?.(event);
+    after(event);
   };
 
-  // ==== BIND EVENTS ==== //
-  const onTouchStart = (event: TouchEvent) => {
-    const t = event.touches[0];
-    start(t.clientX, t.clientY, event);
-  };
-  const onTouchMove = (event: TouchEvent) => {
-    const t = event.touches[0];
-    move(t.clientX, t.clientY, event);
-  };
-  const onTouchEnd = (event: TouchEvent) => {
-    const t = event.changedTouches[0];
-    end(t.clientX, t.clientY, event);
+  const onMoveAt = (x: number, y: number, event: Event) => {
+    if (!isPointerDown) return;
+    if (!hitTarget(x, y)) {
+      end(x, y, event);
+      return;
+    }
+    move(x, y, event);
   };
 
-  const onMouseDown = (event: MouseEvent) => start(event.clientX, event.clientY, event);
-  const onMouseMove = (event: MouseEvent) => move(event.clientX, event.clientY, event);
-  const onMouseUp = (event: MouseEvent) => end(event.clientX, event.clientY, event);
+  const onDocumentMouseMove: EventListener = (e) => {
+    const me = e as MouseEvent;
+    onMoveAt(me.clientX, me.clientY, e);
+  };
+
+  const onDocumentMouseUp: EventListener = (e) => {
+    const me = e as MouseEvent;
+    if (isPointerDown) end(me.clientX, me.clientY, e);
+  };
+  
+  const onDocumentMouseOut: EventListener = (e) => {
+    const me = e as MouseEvent;
+    if (isPointerDown && me.relatedTarget === null) end(lastX, lastY, e);
+  };
+
+  const onDocumentTouchMove: EventListener = (e) => {
+    const te = e as TouchEvent;
+    const t = te.touches[0];
+    if (t) onMoveAt(t.clientX, t.clientY, e);
+  };
+
+  const endFromChangedTouch: EventListener = (e) => {
+    if (!isPointerDown) return;
+    const te = e as TouchEvent;
+    const t = te.changedTouches[0];
+    end(t ? t.clientX : lastX, t ? t.clientY : lastY, e);
+  };
+
+  const onWindowBlur = () => {
+    if (isPointerDown) end(lastX, lastY, new Event("gesture:window-blur"));
+  };
+
+  const setGlobalListeners = (active: boolean) => {
+    const m = active ? "addEventListener" : "removeEventListener";
+    document[m]("mousemove", onDocumentMouseMove, capture);
+    document[m]("mouseup", onDocumentMouseUp, capture);
+    document[m]("mouseout", onDocumentMouseOut, capture);
+    document[m]("touchmove", onDocumentTouchMove, touchMoveOpts);
+    document[m]("touchend", endFromChangedTouch, capture);
+    document[m]("touchcancel", endFromChangedTouch, capture);
+    window[m]("blur", onWindowBlur);
+  };
+
+  const toggleGlobalListeners = (on: boolean) => {
+    setGlobalListeners(false);
+    if (on) setGlobalListeners(true);
+  };
+
+  const onTouchStart = (e: TouchEvent) => {
+    const t = e.touches[0];
+    start(t.clientX, t.clientY, e);
+  };
+  const onTouchEnd = (e: TouchEvent) => {
+    const t = e.changedTouches[0];
+    end(t.clientX, t.clientY, e);
+  };
+  const onMouseDown = (e: MouseEvent) => start(e.clientX, e.clientY, e);
 
   element.addEventListener("touchstart", onTouchStart, options);
-  element.addEventListener("touchmove", onTouchMove, options);
   element.addEventListener("touchend", onTouchEnd, options);
-
   element.addEventListener("mousedown", onMouseDown, options);
-  element.addEventListener("mousemove", onMouseMove, options);
-  element.addEventListener("mouseup", onMouseUp, options);
 
   const destroy = () => {
+    toggleGlobalListeners(false);
+    isPointerDown = false;
     element.removeEventListener("touchstart", onTouchStart, options);
-    element.removeEventListener("touchmove", onTouchMove, options);
     element.removeEventListener("touchend", onTouchEnd, options);
-
     element.removeEventListener("mousedown", onMouseDown, options);
-    element.removeEventListener("mousemove", onMouseMove, options);
-    element.removeEventListener("mouseup", onMouseUp, options);
   };
 
   return { destroy, cancel };
