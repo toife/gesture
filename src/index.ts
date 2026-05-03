@@ -8,6 +8,20 @@ const directionBeyondThreshold = (dx: number, dy: number, minMove: number): Dire
   return cardinalFromDelta(dx, dy);
 };
 
+/** Options passed via `handlers.options` on `gesture(element, handlers)`. */
+export type GestureHandlerOptions = {
+  minMove?: number;
+  minDist?: number;
+  maxDuration?: number;
+  minVelocity?: number;
+  /**
+   * When true, keeps tracking after the pointer moves outside the bound element until
+   * pointer up / touch end / blur. Default false: ends the gesture when the point
+   * under the pointer is no longer inside the element (previous behavior).
+   */
+  trackOutsideElement?: boolean;
+};
+
 export const gesture = (element: HTMLElement, handlers: any = {}, options: any = {}) => {
   let startX = 0;
   let startY = 0;
@@ -21,6 +35,7 @@ export const gesture = (element: HTMLElement, handlers: any = {}, options: any =
   const minDist = handlers?.options?.minDist ?? 60;
   const maxDuration = handlers?.options?.maxDuration ?? 280;
   const minVelocity = handlers?.options?.minVelocity ?? 0.5;
+  const trackOutsideElement = handlers?.options?.trackOutsideElement === true;
 
   const touchMoveOpts: AddEventListenerOptions = { capture: true, passive: true };
   const capture = true;
@@ -137,7 +152,7 @@ export const gesture = (element: HTMLElement, handlers: any = {}, options: any =
 
   const onMoveAt = (x: number, y: number, event: Event) => {
     if (!isPointerDown) return;
-    if (!hitTarget(x, y)) {
+    if (!trackOutsideElement && !hitTarget(x, y)) {
       end(x, y, event);
       return;
     }
